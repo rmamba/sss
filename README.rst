@@ -5,8 +5,8 @@ SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
    :target: https://travis-ci.org/rmamba/sss3
    :alt: Travis-ci: continuous integration status.
 
-.. image:: https://coveralls.io/repos/saimn/sigal/badge.png?branch=master
-   :target: https://coveralls.io/r/saimn/sigal?branch=master
+.. image:: https://coveralls.io/repos/rmamaba/sss3/badge.png?branch=master
+   :target: https://coveralls.io/r/rmamba/sss3?branch=master
    :alt: coveralls.io
 
 Sigal is yet another simple static gallery generator. It's written in Python
