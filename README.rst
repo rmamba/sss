@@ -1,8 +1,8 @@
 SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
 =======================================
 
-.. image:: https://secure.travis-ci.org/saimn/sigal.png?branch=master
-   :target: https://travis-ci.org/saimn/sigal
+.. image:: https://secure.travis-ci.org/rmamba/sss3.png?branch=master
+   :target: https://travis-ci.org/rmamba/sss3
    :alt: Travis-ci: continuous integration status.
 
 .. image:: https://coveralls.io/repos/saimn/sigal/badge.png?branch=master
