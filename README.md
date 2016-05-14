@@ -1,4 +1,4 @@
-SSS - Simple S3 Synchroniser -- ToDO!!!
+SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
 =======================================
 
 .. image:: https://secure.travis-ci.org/saimn/sigal.png?branch=master
