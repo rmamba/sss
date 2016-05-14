@@ -1,0 +1,26 @@
+language: python
+python:
+    - "2.7"
+    - "3.3"
+    - "3.4"
+    - "3.5"
+#env:
+#  - PILLOW_VERSION=3.1.0
+#before_install:
+#    # Dependencies to build PIL
+#    - sudo apt-get update -qq
+#    - sudo apt-get install -qq ubuntu-restricted-extras
+#    - sudo apt-get install -qq libfreetype6-dev libjpeg8-dev zlib1g-dev ffmpeg
+#    - sudo locale-gen fr_FR.UTF-8
+#    - ffmpeg -version
+install:
+#    - pip install -q Pillow==$PILLOW_VERSION
+#    - pip install pytest pytest-cov
+    - pip install coveralls
+    - pip install boto3
+#    - pip install .
+script: py.test -sv --cov sigal --cov-report term-missing tests/
+after_success:
+    coveralls
+notifications:
+  slack: rmamba:Ku1XTvbvLXnj5LwPt5gKMaME#sss3
