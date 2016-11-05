@@ -1,4 +1,4 @@
-SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
+SSS3 - Simple Synchroniser for Amazon S3/Glacier -- ToDO!!!
 =======================================
 
 .. image:: https://secure.travis-ci.org/rmamba/sss3.png?branch=master
@@ -9,19 +9,15 @@ SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
    :target: https://coveralls.io/r/rmamba/sss3?branch=master
    :alt: coveralls.io
 
-Sigal is yet another simple static gallery generator. It's written in Python
-and it allows to build a static gallery of images with the following features:
+Simple script to help backup and maintain data in the cloud.
+Features:
 
-* Process directories recursively.
-* Generate HTML pages using jinja2 templates.
-* Relative links for a portable output.
-* Support themes, videos, EXIF tags, zip download.
-* Parallel processing.
+* S3 and Glacier support.
+* S3 backed up by Glacier
 * MIT licensed.
 
-The idea behind Sigal is to ease the use of the javascript libraries like
-galleria_. These libraries do a great job to display the images, Sigal does
-what is missing: resize images, create thumbnails, generate HTML pages.
+The idea behind SSS3 is to ease the use of backing up your
+files to the cloud.
 
 SSS is compatible with Python 2.7 and 3.3+.
 
