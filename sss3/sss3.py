@@ -1,4 +1,4 @@
-import sys
+import sys,json
 import os
 import boto3
 import ctypes
@@ -6,6 +6,7 @@ import ctypes
 
 commands = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config']
 fname="sss3"
+jsonpath="./"+fname+"/config.json"
 
 
 
@@ -14,17 +15,39 @@ def help():
     return
 
 def init():
+    # If directory sss3 doesnt exist
     if not os.path.isdir(fname):
         if os.name == 'nt':
             os.makedirs(fname)
             ctypes.windll.kernel32.SetFileAttributesW(ur""+fname,0x02)
         else:
             os.makedirs("."+fname)
+        open("./"+fname+"/config.json", 'w').close()
+
+    else:
+        if not os.path.isfile(jsonpath):
+            open(jsonpath, 'w').close()
+
+
+    if len(sys.argv) == 5:
+        #Insert new user into json file if doesnt exists - overwrite if exists
+        with open(jsonpath, 'r') as outfile:
+            try:
+                data=json.load(outfile)
+            except:
+                data={}
+
+        data[sys.argv[2]]={"Secret_Access_Key": sys.argv[3], "Access_Key_ID": sys.argv[4]}
+        with open(jsonpath, 'w') as outfile:
+            json.dump(data, outfile)
+
+
+    elif len(sys.argv) == 3:
+        print("ahhdwq")
 
 
 
 
-    return
 
 def status():
     return
