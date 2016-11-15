@@ -24,4 +24,4 @@ script: py.test -sv tests/test.py
 after_success:
     coveralls
 notifications:
-  slack: rmamba:Ku1XTvbvLXnj5LwPt5gKMaME#sss3
+  slack: rmamba:Ku1XTvbvLXnj5LwPt5gKMaME#sss3-build
