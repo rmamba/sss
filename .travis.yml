@@ -19,7 +19,8 @@ install:
     - pip install coveralls
     - pip install boto3
 #    - pip install .
-script: py.test -sv --cov sigal --cov-report term-missing tests/
+#script: py.test -sv --cov sigal --cov-report term-missing tests/
+script: py.test -sv term-missing tests/
 after_success:
     coveralls
 notifications:
