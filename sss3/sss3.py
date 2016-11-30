@@ -3,6 +3,8 @@ import json
 import os
 import boto3
 import ctypes
+import re
+import uuid
 
 
 class SSS3:
@@ -14,6 +16,7 @@ class SSS3:
     COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect']
     FOLDER_NAME = '.sss3'
     CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
+
 
     # Reading config and return it
     def __read_config(self):
@@ -33,6 +36,30 @@ class SSS3:
             connection_to_bucket = False
         return connection_to_bucket
 
+
+    #Check bucket creation
+    def __check_creation_of_bucket(self, session, bucketname):
+        s3 = session.resource('s3')
+        try:
+            s3.create_bucket(Bucket=bucketname)
+            bucket = s3.Bucket(bucketname)
+            bucket.delete()
+            return True
+        except Exception as e:
+            print e
+            return False
+
+
+
+
+    #Check if valid domain name
+    def __check_valid_domain(self,domain):
+        if not re.search(r'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
+            print "Domain name is not safe!!"
+            exit(1)
+        else:
+            return True
+
     # If directory sss3 doesnt exist
     def __check_hidden_folder_exists(self):
         if not os.path.isdir(self.FOLDER_NAME):
@@ -46,6 +73,8 @@ class SSS3:
         else:
             if not os.path.isfile(self.CONFIG_FILE):
                 open(self.CONFIG_FILE, 'w').close()
+            else:
+                return True
 
 
     def __init__(self, arguments):
@@ -74,13 +103,52 @@ class SSS3:
 
 
     def __init(self):
-        self.__check_hidden_folder_exists()
-        if len(self.arguments) == 5:
-            #Insert data into json
-            data={"GUID":self.arguments[2],"Secret_Access_Key": self.arguments[4], "Access_Key_ID": self.arguments[3]}
-            with open(self.CONFIG_FILE, 'w') as outfile:
-                json.dump(data, outfile)
+        if len(self.arguments) > 5:
+            print "Usage of command diferent get help"
+            return
 
+        if os.path.isfile(self.CONFIG_FILE):
+            print "Directory already inicialized"
+            return
+        else:
+            #if directory is not inicialized
+            if len(self.arguments)==5:
+                if self.__check_valid_domain(self.arguments[2]):
+                    #check if creation of bucket is possible
+                    session = boto3.Session(aws_access_key_id=self.arguments[3],aws_secret_access_key=self.arguments[4])
+                    if self.__check_creation_of_bucket(session,self.arguments[2]):
+                        self.__check_hidden_folder_exists()
+                        data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4],
+                                "Access_Key_ID": self.arguments[3]}
+                        with open(self.CONFIG_FILE, 'w') as outfile:
+                            json.dump(data, outfile)
+                        print "Configuration saved!"
+
+            elif len(self.arguments)==3:
+                if self.__check_valid_domain(self.arguments[2]):
+                    #for windows
+                    os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "C:/Users/Slejko/aws/credentials"
+                    session = boto3.Session()
+                    if self.__check_creation_of_bucket(session, self.arguments[2]):
+                        self.__check_hidden_folder_exists()
+                        data={"GUID": self.arguments[2].lower()}
+                        with open(self.CONFIG_FILE, 'w') as outfile:
+                            json.dump(data, outfile)
+                        print "Configuration saved!"
+
+            elif len(self.arguments)==2:
+                creation=False
+                os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "C:/Users/Slejko/aws/credentials"
+                session = boto3.Session()
+                while(not creation):
+                    guid = uuid.uuid4()
+                    creation=self.__check_creation_of_bucket(session, str(guid))
+                    if creation:
+                        self.__check_hidden_folder_exists()
+                        data = {"GUID": guid}
+                        with open(self.CONFIG_FILE, 'w') as outfile:
+                            json.dump(data, outfile)
+                        print "Configuration saved!"
 
     def __status(self):
         return
