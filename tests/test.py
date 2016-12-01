@@ -66,7 +66,7 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
     if not os.path.isdir(self.FOLDER_NAME):
       if os.name == 'nt':
         os.makedirs(self.FOLDER_NAME)
-        ctypes.windll.kernel32.SetFileAttributesW(ur"" + self.FOLDER_NAME, 0x02)
+        ctypes.windll.kernel32.SetFileAttributesW(r'{0}'.format(self.FOLDER_NAME), 0x02)
       else:
         os.makedirs("." + self.FOLDER_NAME)
       open(self.CONFIG_FILE, 'w').close()
