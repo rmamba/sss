@@ -157,3 +157,7 @@ uwsgi.ini
 DNS.conf
 
 *.xml
+tests/testdata.json
+
+#all in config folder
+.sss3
