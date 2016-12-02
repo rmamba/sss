@@ -7,7 +7,7 @@ python:
 #env:
 #  - PILLOW_VERSION=3.1.0
 before_install:
-    - wget $testData -O tests/tesdata.json
+    - wget $testData -O tests/testdata.json
 install:
     - pip install pytest pytest-cov
     - pip install coveralls
