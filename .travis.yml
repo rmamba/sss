@@ -8,6 +8,7 @@ python:
 #  - PILLOW_VERSION=3.1.0
 before_install:
     - wget $testData -O tests/testdata.json
+    - ls tests/*
 install:
     - pip install pytest pytest-cov
     - pip install coveralls
