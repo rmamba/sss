@@ -15,7 +15,7 @@ python:
 #    - ffmpeg -version
 install:
 #    - pip install -q Pillow==$PILLOW_VERSION
-#    - pip install pytest pytest-cov
+    - pip install pytest pytest-cov
     - pip install coveralls
     - pip install boto3
 #    - pip install .
