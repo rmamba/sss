@@ -5,9 +5,9 @@ SSS3 - Simple Synchroniser for Amazon S3 -- ToDO!!!
    :target: https://travis-ci.org/rmamba/sss3
    :alt: Travis-ci: continuous integration status. 
  
-.. image:: https://coveralls.io/repos/rmamaba/sss3/badge.png?branch=master
-   :target: https://coveralls.io/r/rmamba/sss3?branch=master
-   :alt: coveralls.io 
+.. image:: https://coveralls.io/repos/github/rmamba/sss3/badge.svg?branch=master
+   :target: https://coveralls.io/github/rmamba/sss3?branch=master
+   :alt: Code coverage
  
 .. image:: https://www.quantifiedcode.com/api/v1/project/553739e677914955ba95671615f32b7d/badge.svg
   :target: https://www.quantifiedcode.com/app/project/553739e677914955ba95671615f32b7d
