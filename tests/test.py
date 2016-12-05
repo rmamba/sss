@@ -1,15 +1,23 @@
-import ctypes
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from sss3.sss3 import SSS3
 
 import unittest
 import sys
 import json
 import os.path
+import ctypes
 
 class testConfigCommandWithNoConfigFile(unittest.TestCase):
+  FOLDER_NAME = '.sss3'
+  CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
+
   def setUp(self):
     self.held, sys.stdout = sys.stdout, StringIO()
+    if os.path.isfile(self.CONFIG_FILE):
+      os.remove(self.CONFIG_FILE)
 
   def test_no_arguments(self):
     SSS3(['sss3.py'])
@@ -56,12 +64,12 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
     with open(self.TEST_FILE) as json_data:
       self.test_data = json.load(json_data)
 
-    data = {"GUID": self.test_data['names']['existing'], "Secret_Access_Key": self.test_data['AWS']['restrected']['SecretAccessKey'], "Access_Key_ID": self.test_data['AWS']['restrected']['AccessKeyID']}
+    data = {"GUID": self.test_data['names']['existing'], "Secret_Access_Key": self.test_data['AWS']['unrestrected']['SecretAccessKey'], "Access_Key_ID": self.test_data['AWS']['unrestrected']['AccessKeyID']}
 
     if not os.path.isdir(self.FOLDER_NAME):
       if os.name == 'nt':
         os.makedirs(self.FOLDER_NAME)
-        ctypes.windll.kernel32.SetFileAttributesW(ur"" + self.FOLDER_NAME, 0x02)
+        ctypes.windll.kernel32.SetFileAttributesW(r'{0}'.format(self.FOLDER_NAME), 0x02)
       else:
         os.makedirs("." + self.FOLDER_NAME)
       open(self.CONFIG_FILE, 'w').close()
@@ -69,9 +77,8 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
       if not os.path.isfile(self.CONFIG_FILE):
         open(self.CONFIG_FILE, 'w').close()
 
-    if os.path.getsize(self.CONFIG_FILE)==0:
-      with open(self.CONFIG_FILE, 'w') as outfile:
-        json.dump(data, outfile)
+    with open(self.CONFIG_FILE, 'w') as outfile:
+      json.dump(data, outfile)
 
   def test_no_arguments(self):
     SSS3(['sss3.py'])
@@ -95,7 +102,7 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
 
   def test_config_print_AWS(self):
     SSS3(['sss3.py', 'config', 'AWS'])
-    self.assertEqual(sys.stdout.getvalue(), 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}\n'.format(self.test_data['AWS']['restrected']['AccessKeyID'], self.test_data['AWS']['restrected']['SecretAccessKey']))
+    self.assertEqual(sys.stdout.getvalue(), 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}\n'.format(self.test_data['AWS']['unrestrected']['AccessKeyID'], self.test_data['AWS']['unrestrected']['SecretAccessKey']))
 
   def test_config_set_AWS_not_enough_parameters(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notEnough' ])

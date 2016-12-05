@@ -46,7 +46,7 @@ class SSS3:
             bucket.delete()
             return True
         except Exception as e:
-            print e
+            print(e)
             return False
 
 
@@ -55,7 +55,7 @@ class SSS3:
     #Check if valid domain name
     def __check_valid_domain(self,domain):
         if not re.search(r'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
-            print "Domain name is not safe!!"
+            print('Domain name is not safe!!')
             exit(1)
         else:
             return True
@@ -65,7 +65,7 @@ class SSS3:
         if not os.path.isdir(self.FOLDER_NAME):
             if os.name == 'nt':
                 os.makedirs(self.FOLDER_NAME)
-                ctypes.windll.kernel32.SetFileAttributesW(ur"" + self.FOLDER_NAME, 0x02)
+                ctypes.windll.kernel32.SetFileAttributesW(r'{0}'.format(self.FOLDER_NAME), 0x02)
             else:
                 os.makedirs("." + self.FOLDER_NAME)
             open("./" + self.FOLDER_NAME + "/config.json", 'w').close()
@@ -104,11 +104,11 @@ class SSS3:
 
     def __init(self):
         if len(self.arguments) > 5:
-            print "Usage of command diferent get help"
+            print('Usage of command diferent get help')
             return
 
         if os.path.isfile(self.CONFIG_FILE):
-            print "Directory already inicialized"
+            print('Directory already inicialized')
             return
         else:
             #if directory is not inicialized
@@ -122,7 +122,7 @@ class SSS3:
                                 "Access_Key_ID": self.arguments[3]}
                         with open(self.CONFIG_FILE, 'w') as outfile:
                             json.dump(data, outfile)
-                        print "Configuration saved!"
+                        print('Configuration saved!')
 
             elif len(self.arguments)==3:
                 if self.__check_valid_domain(self.arguments[2]):
@@ -134,7 +134,7 @@ class SSS3:
                         data={"GUID": self.arguments[2].lower()}
                         with open(self.CONFIG_FILE, 'w') as outfile:
                             json.dump(data, outfile)
-                        print "Configuration saved!"
+                        print('Configuration saved!')
 
             elif len(self.arguments)==2:
                 creation=False
@@ -148,7 +148,7 @@ class SSS3:
                         data = {"GUID": guid}
                         with open(self.CONFIG_FILE, 'w') as outfile:
                             json.dump(data, outfile)
-                        print "Configuration saved!"
+                        print('Configuration saved!')
 
     def __status(self):
         return
@@ -167,24 +167,24 @@ class SSS3:
 
     def __config(self):
         if (not os.path.isfile(self.CONFIG_FILE)):
-            print "This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command."
+            print('This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.')
             return
 
         if len(self.arguments)<3:
-            print 'usage: sss3 config <argument> <argument> <argument>\n\nArguments:\n\tAWS\tPrints AWS credentials. Or sets credentials if new are provided.\n\tGUID\tPrint name of this repository.'
+            print('usage: sss3 config <argument> <argument> <argument>\n\nArguments:\n\tAWS\tPrints AWS credentials. Or sets credentials if new are provided.\n\tGUID\tPrint name of this repository.')
             return
 
         if self.arguments[2] == "GUID":
             if len(self.arguments) < 4:
-                print "GUID:", self.__read_config()["GUID"]
+                print('GUID: {0}'.format(self.__read_config()["GUID"]))
             else:
-                print "GUID is read only!!!"
+                print('GUID is read only!!!')
             return
 
 
         if self.arguments[2] == "AWS":
             if len(self.arguments)==3:
-                print 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}'.format(self.__read_config()["Access_Key_ID"], self.__read_config()["Secret_Access_Key"])
+                print('AccessKeyID: \t{0}\nSecretAccessKey: \t{1}'.format(self.__read_config()["Access_Key_ID"], self.__read_config()["Secret_Access_Key"]))
                 return
 
             if len(self.arguments) == 5:
@@ -194,14 +194,14 @@ class SSS3:
                         data = {"GUID": self.__read_config()["GUID"], "Secret_Access_Key": self.arguments[3], "Access_Key_ID": self.arguments[4]}
                         with open(self.CONFIG_FILE, 'w') as outfile:
                             json.dump(data, outfile)
-                        print "Configuration saved!"
+                        print('Configuration saved!')
                         return
                     else:
-                        print "User doesn't have access to resource in AWS, exiting without saving..."
+                        print("User doesn't have access to resource in AWS, exiting without saving...")
                 else:
-                    print "Exiting without saving new configuration"
+                    print('Exiting without saving new configuration')
             else:
-                print "You need to specify both AccessKeyID and SecretAccessKey to change them!!!"
+                print('You need to specify both AccessKeyID and SecretAccessKey to change them!!!')
 
 
 if __name__ == '__main__':
