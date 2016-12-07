@@ -40,26 +40,23 @@ class SSS3:
 
 
     #Check bucket creation
-    def __check_creation_of_bucket(self, session, bucketname, create):
+    def __check_creation_of_bucket(self, session, bucketname, remove=True):
         s3 = session.resource('s3')
         try:
             s3.create_bucket(Bucket=bucketname)
             bucket = s3.Bucket(bucketname)
-            if not create:
+            if remove==True:
                 bucket.delete()
-            return None
+            return True
         except Exception as e:
-            print e
-            sys.exit(1)
-
+            print(e)
+            return False
 
     #Check if valid domain name
     def __check_valid_domain(self,domain):
         if not re.search(u'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
-            print('Domain name is not safe!!')
-            sys.exit(1)
-        else:
-            return True
+            return False
+        return True
 
     # If directory sss3 doesnt exist
     def __check_hidden_folder_exists(self):
@@ -70,7 +67,6 @@ class SSS3:
             else:
                 os.makedirs("." + self.FOLDER_NAME)
             open("./" + self.FOLDER_NAME + "/config.json", 'w').close()
-
         else:
             if not os.path.isfile(self.CONFIG_FILE):
                 open(self.CONFIG_FILE, 'w').close()
@@ -90,67 +86,63 @@ class SSS3:
             self.__help()
             return
 
-
         if cmd == 'init' or cmd == 'i':
             self.__init()
 
         if cmd == 'config':
             self.__config()
 
-
     def __help(self):
         print('usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration')
         return
 
-
     def __init(self):
-        if len(self.arguments) > 5 or len(self.arguments)<2:
+        if len(self.arguments) > 5 or len(self.arguments) < 2:
             self.__help()
             return
 
         if os.path.isfile(self.CONFIG_FILE):
-            print "Directory already inicialized"
+            print('Directory already initialised')
             return
 
-            #if directory is not inicialized
-        if len(self.arguments)==5:
+        # if directory is not inicialized
+        if len(self.arguments) == 5:
             if self.__check_valid_domain(self.arguments[2]):
-                #check if creation of bucket is possible
-                session = boto3.Session(aws_access_key_id=self.arguments[3],aws_secret_access_key=self.arguments[4])
-                if self.__check_creation_of_bucket(session,self.arguments[2],True) is None:
+                # check if creation of bucket is possible
+                session = boto3.Session(aws_access_key_id=self.arguments[3], aws_secret_access_key=self.arguments[4])
+                if self.__check_creation_of_bucket(session, self.arguments[2], False):
                     self.__check_hidden_folder_exists()
-                    data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4], "Access_Key_ID": self.arguments[3]}
+                    data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4],
+                            "Access_Key_ID": self.arguments[3]}
                     with open(self.CONFIG_FILE, 'w') as outfile:
                         json.dump(data, outfile)
-                    print "Configuration saved!"
-                    return
+                    print('Repository initialised!')
+            else:
+                print('You entered invalid domain name!!!\nPlease enter GUID that is also a valid domain name.')
+            return
 
-        if len(self.arguments)==3:
+        if len(self.arguments) == 3:
             if self.__check_valid_domain(self.arguments[2]):
                 session = boto3.Session()
-                if self.__check_creation_of_bucket(session, self.arguments[2],True) is None:
+                if self.__check_creation_of_bucket(session, self.arguments[2], False):
                     self.__check_hidden_folder_exists()
-                    data={"GUID": self.arguments[2].lower()}
+                    data = {"GUID": self.arguments[2].lower()}
                     with open(self.CONFIG_FILE, 'w') as outfile:
                         json.dump(data, outfile)
-                    print "Configuration saved!"
+                    print('Repository initialised!')
                     return
 
-        if len(self.arguments)==2:
-            creation=None
+        if len(self.arguments) == 2:
             session = boto3.Session()
-            while(creation is None):
-                guid = uuid.uuid4()
-                creation=self.__check_creation_of_bucket(session, str(guid),True)
-                if creation is None:
-                    self.__check_hidden_folder_exists()
-                    data = {"GUID": guid}
-                    with open(self.CONFIG_FILE, 'w') as outfile:
-                        json.dump(data, outfile)
-                    print "Configuration saved!"
-                    return
+            guid = uuid.uuid4()
+            if self.__check_creation_of_bucket(session, str(guid), False):
+                self.__check_hidden_folder_exists()
+                data = {"GUID": guid}
+                with open(self.CONFIG_FILE, 'w') as outfile:
+                    json.dump(data, outfile)
+                print('Repository initialised!')
+                return
         self.__help()
-
 
     def __status(self):
         return
