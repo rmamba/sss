@@ -11,6 +11,8 @@ import os.path
 import ctypes
 
 class testConfigCommandWithNoConfigFile(unittest.TestCase):
+  test_data = None
+  TEST_FILE = 'testdata.json'
   FOLDER_NAME = '.sss3'
   CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
 
@@ -18,6 +20,8 @@ class testConfigCommandWithNoConfigFile(unittest.TestCase):
     self.held, sys.stdout = sys.stdout, StringIO()
     if os.path.isfile(self.CONFIG_FILE):
       os.remove(self.CONFIG_FILE)
+    with open(self.TEST_FILE) as json_data:
+      self.test_data = json.load(json_data)
 
   def test_no_arguments(self):
     SSS3(['sss3.py'])
@@ -43,13 +47,13 @@ class testConfigCommandWithNoConfigFile(unittest.TestCase):
     SSS3(['sss3.py', 'config', 'AWS', 'notEnough' ])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  # def test_set_AWS_wrong_credentials(self):
-  #   SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
-  #   self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
-  #
-  # def test_set_AWS_correct_credentials(self):
-  #   SSS3(['sss3.py', 'config', 'AWS', 'rightAccess', 'rightKey'])
-  #   self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
+  def test_set_AWS_wrong_credentials(self):
+    SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
+    self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
+
+  def test_set_AWS_correct_credentials(self):
+    SSS3(['sss3.py', 'config', 'AWS', self.test_data['AWS']['restrected']['AccessKeyID'], self.test_data['AWS']['restrected']['SecretAccessKey']])
+    self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
 class testWithConfigFileRestrectedAccess(unittest.TestCase):
   test_data = None
@@ -64,7 +68,7 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
     with open(self.TEST_FILE) as json_data:
       self.test_data = json.load(json_data)
 
-    data = {"GUID": self.test_data['names']['existing'], "Secret_Access_Key": self.test_data['AWS']['unrestrected']['SecretAccessKey'], "Access_Key_ID": self.test_data['AWS']['unrestrected']['AccessKeyID']}
+    data = {"GUID": self.test_data['names']['existing'], "Secret_Access_Key": self.test_data['AWS']['restrected']['SecretAccessKey'], "Access_Key_ID": self.test_data['AWS']['restrected']['AccessKeyID']}
 
     if not os.path.isdir(self.FOLDER_NAME):
       if os.name == 'nt':
@@ -102,19 +106,19 @@ class testWithConfigFileRestrectedAccess(unittest.TestCase):
 
   def test_config_print_AWS(self):
     SSS3(['sss3.py', 'config', 'AWS'])
-    self.assertEqual(sys.stdout.getvalue(), 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}\n'.format(self.test_data['AWS']['unrestrected']['AccessKeyID'], self.test_data['AWS']['unrestrected']['SecretAccessKey']))
+    self.assertEqual(sys.stdout.getvalue(), 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}\n'.format(self.test_data['AWS']['restrected']['AccessKeyID'], self.test_data['AWS']['restrected']['SecretAccessKey']))
 
   def test_config_set_AWS_not_enough_parameters(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notEnough' ])
     self.assertEqual(sys.stdout.getvalue(), 'You need to specify both AccessKeyID and SecretAccessKey to change them!!!\n')
 
-  # def test_config_set_AWS_wrong_credentials(self):
-  #   SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
-  #   self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
-  #
-  # def test_config_set_AWS_correct_credentials(self):
-  #   SSS3(['sss3.py', 'config', 'AWS', 'rightAccess', 'rightKey'])
-  #   self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
+  def test_config_set_AWS_wrong_credentials(self):
+    SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
+    self.assertEqual(sys.stdout.getvalue(), 'Error accessing S3 bucket!!!\nPlease provide correct credentials that have access to bucket you are using.\n')
+
+  def test_config_set_AWS_correct_credentials(self):
+    SSS3(['sss3.py', 'config', 'AWS', self.test_data['AWS']['unrestrected']['AccessKeyID'], self.test_data['AWS']['unrestrected']['SecretAccessKey']])
+    self.assertEqual(sys.stdout.getvalue(), 'New credentials were saved to your configuration file.\n')
 
 if __name__ == '__main__':
     unittest.main()

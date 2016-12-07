@@ -55,7 +55,7 @@ class SSS3:
 
     #Check if valid domain name
     def __check_valid_domain(self,domain):
-        if not re.search(r'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
+        if not re.search(u'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
             print('Domain name is not safe!!')
             sys.exit(1)
         else:
@@ -119,8 +119,7 @@ class SSS3:
                 session = boto3.Session(aws_access_key_id=self.arguments[3],aws_secret_access_key=self.arguments[4])
                 if self.__check_creation_of_bucket(session,self.arguments[2],True) is None:
                     self.__check_hidden_folder_exists()
-                    data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4],
-                            "Access_Key_ID": self.arguments[3]}
+                    data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4], "Access_Key_ID": self.arguments[3]}
                     with open(self.CONFIG_FILE, 'w') as outfile:
                         json.dump(data, outfile)
                     print "Configuration saved!"
@@ -190,21 +189,20 @@ class SSS3:
                 print('AccessKeyID: \t{0}\nSecretAccessKey: \t{1}'.format(self.__read_config()["Access_Key_ID"], self.__read_config()["Secret_Access_Key"]))
                 return
 
-            if len(self.arguments) == 5:
-                dec=raw_input("Configuration already exists are you sure to overwrite it? Type y for yes and n for no")
-                if dec.startswith('y'):
-                    if self.__check_connection_to_bucket(self.arguments[3],self.arguments[4], self.__read_config()['GUID']):
-                        data = {"GUID": self.__read_config()["GUID"], "Secret_Access_Key": self.arguments[3], "Access_Key_ID": self.arguments[4]}
-                        with open(self.CONFIG_FILE, 'w') as outfile:
-                            json.dump(data, outfile)
-                        print('Configuration saved!')
-                        return
-                    else:
-                        print("User doesn't have access to resource in AWS, exiting without saving...")
-                else:
-                    print('Exiting without saving new configuration')
-            else:
+            if len(self.arguments)==4:
                 print('You need to specify both AccessKeyID and SecretAccessKey to change them!!!')
+                return
+
+            if len(self.arguments) == 5:
+                if self.__check_connection_to_bucket(self.arguments[3],self.arguments[4], self.__read_config()['GUID']):
+                    data = {"GUID": self.__read_config()["GUID"], "Secret_Access_Key": self.arguments[3], "Access_Key_ID": self.arguments[4]}
+                    with open(self.CONFIG_FILE, 'w') as outfile:
+                        json.dump(data, outfile)
+                    print('New credentials were saved to your configuration file.')
+                    return
+                else:
+                    print('Error accessing S3 bucket!!!\nPlease provide correct credentials that have access to bucket you are using.')
+
 
 
 if __name__ == '__main__':
