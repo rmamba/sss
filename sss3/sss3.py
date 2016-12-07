@@ -86,7 +86,7 @@ class SSS3:
             self.__help()
             return
 
-        if cmd == 'init' or cmd == 'i':
+        if cmd in ['init', 'i']:
             self.__init()
 
         if cmd == 'config':
