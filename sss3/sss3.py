@@ -40,25 +40,24 @@ class SSS3:
 
 
     #Check bucket creation
-    def __check_creation_of_bucket(self, session, bucketname):
+    def __check_creation_of_bucket(self, session, bucketname, create):
         s3 = session.resource('s3')
         try:
             s3.create_bucket(Bucket=bucketname)
             bucket = s3.Bucket(bucketname)
-            bucket.delete()
+            if not create:
+                bucket.delete()
             return None
         except Exception as e:
             print e
-            exit(1)
-
-
+            sys.exit(1)
 
 
     #Check if valid domain name
     def __check_valid_domain(self,domain):
         if not re.search(r'^[a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})*$', domain) is not None:
             print('Domain name is not safe!!')
-            exit(1)
+            sys.exit(1)
         else:
             return True
 
@@ -118,7 +117,7 @@ class SSS3:
             if self.__check_valid_domain(self.arguments[2]):
                 #check if creation of bucket is possible
                 session = boto3.Session(aws_access_key_id=self.arguments[3],aws_secret_access_key=self.arguments[4])
-                if self.__check_creation_of_bucket(session,self.arguments[2]) is None:
+                if self.__check_creation_of_bucket(session,self.arguments[2],True) is None:
                     self.__check_hidden_folder_exists()
                     data = {"GUID": self.arguments[2].lower(), "Secret_Access_Key": self.arguments[4],
                             "Access_Key_ID": self.arguments[3]}
@@ -130,7 +129,7 @@ class SSS3:
         if len(self.arguments)==3:
             if self.__check_valid_domain(self.arguments[2]):
                 session = boto3.Session()
-                if self.__check_creation_of_bucket(session, self.arguments[2]) is None:
+                if self.__check_creation_of_bucket(session, self.arguments[2],True) is None:
                     self.__check_hidden_folder_exists()
                     data={"GUID": self.arguments[2].lower()}
                     with open(self.CONFIG_FILE, 'w') as outfile:
@@ -143,7 +142,7 @@ class SSS3:
             session = boto3.Session()
             while(creation is None):
                 guid = uuid.uuid4()
-                creation=self.__check_creation_of_bucket(session, str(guid))
+                creation=self.__check_creation_of_bucket(session, str(guid),True)
                 if creation is None:
                     self.__check_hidden_folder_exists()
                     data = {"GUID": guid}
