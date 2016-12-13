@@ -145,6 +145,8 @@ class SSS3:
         self.__help()
 
     def __status(self):
+        print('Status')
+        #print
         return
 
     def __clone(self):
