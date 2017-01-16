@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import json
 import os
@@ -16,6 +17,7 @@ class SSS3:
     COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect']
     FOLDER_NAME = '.sss3'
     CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
+    CONTENT_FILE='./{0}/content.json'.format(FOLDER_NAME)
     home_directory = '{0}/aws/credentials'.format(expanduser("~"))
     os.environ["AWS_SHARED_CREDENTIALS_FILE"] = home_directory
 
@@ -72,6 +74,25 @@ class SSS3:
                 open(self.CONFIG_FILE, 'w').close()
             else:
                 return True
+
+
+    def __create_content_json(self):
+        with open(self.CONTENT_FILE, 'w') as outfile:
+            json.dump(self.__recursive_folder_json('.'), outfile,indent=2)
+        return True
+
+    def __recursive_folder_json(self,path):
+        d = {'name': os.path.basename(path)}
+        if os.path.isdir(path):
+            d['type'] = "directory"
+            d['children'] = [self.__recursive_folder_json(os.path.join(path, x)) for x in os.listdir(path)]
+        else:
+            d['type'] = "file"
+            d['last_modified_timestamp'] = os.stat(path).st_mtime
+            d['created_timestamp'] = os.stat(path).st_ctime
+            d['size'] = os.path.getsize(path)
+            d['crc'] = hashlib.md5(open(path, 'rb').read()).hexdigest()
+        return d
 
 
     def __init__(self, arguments):
