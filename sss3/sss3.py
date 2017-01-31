@@ -8,6 +8,9 @@ import re
 import uuid
 from os.path import expanduser
 
+import botocore
+
+
 class SSS3:
     aws_access_key_id = None
     aws_secret_access_key = None
@@ -76,6 +79,30 @@ class SSS3:
                 return True
 
 
+    def __check_config_folder_exists(self):
+        if os.path.isdir(self.FOLDER_NAME):
+            if os.path.isfile(self.CONFIG_FILE):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+    def __check_config_online(self,bucket):
+        exists=False
+        try:
+            bucket.Object(self.CONFIG_FILE[2:]).load()
+            bucket.Object(self.CONTENT_FILE[2:]).load()
+            exists=True
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                exists = False
+            else:
+                raise
+        return exists
+
+
     def __create_content_json(self):
         with open(self.CONTENT_FILE, 'w') as outfile:
             json.dump(self.__recursive_folder_json('.'), outfile,indent=2)
@@ -93,6 +120,32 @@ class SSS3:
             d['size'] = os.path.getsize(path)
             d['crc'] = hashlib.md5(open(path, 'rb').read()).hexdigest()
         return d
+
+    #create path list from dictionary
+    def __treebuilder(self,dict, prefix="", list=[]):
+        if dict["type"] == "directory":
+            prefix += dict["name"] + "/"
+            for key in dict["children"]:
+                self.__treebuilder(key, prefix)
+        elif dict["type"] == "file":
+            list.append(prefix + dict["name"])
+        return list
+
+
+    #upload directory with given path
+    def __uploadDirectoryjson(self,bucket):
+        d = json.loads(open(self.CONTENT_FILE).read())
+        list=self.__treebuilder(d)
+        for key in list:
+            bucket.upload_file(Key=key[2:], Filename=key[2:])
+
+
+    #download online content and check differences with local content
+    def __diference_on_content(self,bucket):
+        onlinecontent=(bucket.Object(self.CONTENT_FILE)).get()["Body"].read()
+        onlinejson=json.loads(onlinecontent)
+        print onlinejson
+        return False
 
 
     def __init__(self, arguments):
@@ -112,6 +165,9 @@ class SSS3:
 
         if cmd == 'config':
             self.__config()
+
+        if cmd == 'push':
+            self.__push()
 
     def __help(self):
         print('usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration')
@@ -176,8 +232,58 @@ class SSS3:
     def __pull(self):
         return
 
+
+
+
+
     def __push(self):
-        return
+        if len(sys.argv) == 2:
+            if self.__check_config_folder_exists():
+                self.__create_content_json()
+                config=self.__read_config()
+                session = boto3.Session(aws_access_key_id=config["Access_Key_ID"], aws_secret_access_key=config["Secret_Access_Key"])
+                s3 = session.resource('s3')
+                bucket = s3.Bucket(config["GUID"])
+                #check if configuration on cloud exists
+                if self.__check_config_online(bucket):
+                    print "configuration exists"
+                else:
+                #if not synchronize folder from content json
+                    self.__uploadDirectoryjson(bucket)
+
+
+
+                #<---------HELPERS--------->
+
+                #print self.__diference_on_content(bucket)
+                #self.__uploadDirectory(".", bucket)
+                #s3.Bucket('sss3-push-test').objects.delete()
+
+
+                #s3.meta.client.upload_file('test.txt', 'sss3-push-test', 'test.txt')
+                #bucket.upload_file(Key=".sss3/content.json", Filename=".sss3/content.json")
+
+
+
+
+                #print for testing bucket
+                #for key in bucket.objects.all():
+                #    print(key.key)
+
+
+                #for bucket in s3.buckets.all():
+                #    print(bucket.name)
+                #data = open('test.txt', 'rb')
+                #s3.Bucket('sss3-push-test').put_object(Key='test.txt', Body=data)
+                # <---------HELPERS--------->
+
+                return
+            else:
+                print "Configuration setup missing, please run init command first."
+                return
+        self.__help()
+
+
 
     def __commit(self):
         return
