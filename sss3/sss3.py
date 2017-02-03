@@ -109,35 +109,39 @@ class SSS3:
         return True
 
     def __recursive_folder_json(self,path):
-        d = {'name': os.path.basename(path)}
-        if os.path.isdir(path):
-            d['type'] = "directory"
-            d['children'] = [self.__recursive_folder_json(os.path.join(path, x)) for x in os.listdir(path)]
-        else:
-            d['type'] = "file"
-            d['last_modified_timestamp'] = os.stat(path).st_mtime
-            d['created_timestamp'] = os.stat(path).st_ctime
-            d['size'] = os.path.getsize(path)
-            d['crc'] = hashlib.md5(open(path, 'rb').read()).hexdigest()
-        return d
+        dict = {}
+        for key in os.listdir(path):
+            tempath = os.path.join(path, key)
+            if os.path.isdir(tempath):
+                dict[key] = {'children': self.__recursive_folder_json(tempath)}
+            else:
+                dict[key] = {
+                    'type': 'file',
+                    'last_modified_timestamp': os.stat(tempath).st_mtime,
+                    'created_timestamp': os.stat(tempath).st_ctime,
+                    'size': os.path.getsize(tempath),
+                    'crc': hashlib.md5(open(tempath, 'r').read()).hexdigest()
+                }
+        return dict
+
 
     #create path list from dictionary
-    def __treebuilder(self,dict, prefix="", list=[]):
-        if dict["type"] == "directory":
-            prefix += dict["name"] + "/"
-            for key in dict["children"]:
-                self.__treebuilder(key, prefix)
-        elif dict["type"] == "file":
-            list.append(prefix + dict["name"])
+    def __json_path_print(self,dict, prefix="", list=[]):
+        for key in dict:
+            if 'children' in dict[key]:
+                self.__json_path_print(dict[key]['children'], prefix + key + "/")
+            else:
+                list.append(prefix + key)
         return list
 
 
     #upload directory with given path
     def __uploadDirectoryjson(self,bucket):
         d = json.loads(open(self.CONTENT_FILE).read())
-        list=self.__treebuilder(d)
+        list=self.__json_path_print(d)
         for key in list:
-            bucket.upload_file(Key=key[2:], Filename=key[2:])
+            bucket.upload_file(Key=key, Filename=key)
+        return True
 
 
     #download online content and check differences with local content
@@ -267,8 +271,8 @@ class SSS3:
 
 
                 #print for testing bucket
-                #for key in bucket.objects.all():
-                #    print(key.key)
+                for key in bucket.objects.all():
+                    print(key.key)
 
 
                 #for bucket in s3.buckets.all():
