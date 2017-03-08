@@ -1,3 +1,4 @@
+import collections
 import hashlib
 import sys
 import json
@@ -17,7 +18,7 @@ class SSS3:
     config = None
     arguments = None
 
-    COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect']
+    COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect','add']
     FOLDER_NAME = '.sss3'
     CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
     CONTENT_FILE='./{0}/content.json'.format(FOLDER_NAME)
@@ -82,7 +83,8 @@ class SSS3:
     def __check_config_folder_exists(self):
         if os.path.isdir(self.FOLDER_NAME):
             if os.path.isfile(self.CONFIG_FILE):
-                return True
+                if os.path.isfile(self.CONTENT_FILE):
+                    return True
             else:
                 return False
         else:
@@ -103,37 +105,72 @@ class SSS3:
         return exists
 
 
-    def __create_content_json(self):
-        with open(self.CONTENT_FILE, 'w') as outfile:
-            json.dump(self.__recursive_folder_json('.'), outfile,indent=2)
-        return True
 
-    def __recursive_folder_json(self,path):
-        dict = {}
-        for key in os.listdir(path):
-            tempath = os.path.join(path, key)
-            if os.path.isdir(tempath):
-                dict[key] = {'children': self.__recursive_folder_json(tempath)}
+    # izdelaj json na podlagi poti-------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------------------------------------------
+    #zdruzi 2 slovarja zaradi problema pri slovar.update
+    def __dict_update(self,d, u):
+        for k, v in u.iteritems():
+            if isinstance(d, collections.Mapping):
+                if isinstance(v, collections.Mapping):
+                    r = self.__dict_update(d.get(k, {}), v)
+                    d[k] = r
+                else:
+                    d[k] = u[k]
             else:
-                dict[key] = {
-                    'type': 'file',
-                    'last_modified_timestamp': os.stat(tempath).st_mtime,
-                    'created_timestamp': os.stat(tempath).st_ctime,
-                    'size': os.path.getsize(tempath),
-                    'crc': hashlib.md5(open(tempath, 'r').read()).hexdigest()
-                }
+                d = {k: u[k]}
+        return d
+
+    #izdelaj drevesno strukturo jsona s podane poti in zadnji del poti poslje v __folder_structure_json da pridobi full json
+    def __nested_dict(self,path, level=0):
+        tmp = path.split("/")
+        dict = {tmp[level]: {"children": {}}}
+        if level == len(tmp) - 1:
+            dict = self.__folder_structure_json(path)
+        else:
+            dict[tmp[level]]["children"] = self.__nested_dict(path, level + 1)
         return dict
+
+    #izdelaj json strukturo na podlagi poti
+    def __folder_structure_json(self,path):
+        if path.endswith("/"):
+            path = path[:-1]
+        if path == ".":
+            dict = {}
+        else:
+            dict = {os.path.basename(path): {}}
+        if os.path.isdir(path):
+            if not path == ".":
+                dict[os.path.basename(path)] = {"children": {}}
+            for key in os.listdir(path):
+                if path == ".":
+                    dict.update(self.__folder_structure_json(path + "/" + key))
+                else:
+                    dict[os.path.basename(path)]["children"].update(self.__folder_structure_json(path + "/" + key))
+        else:
+            dict[os.path.basename(path)] = {
+                'type': 'file',
+                'last_modified_timestamp': os.stat(path).st_mtime,
+                'created_timestamp': os.stat(path).st_ctime,
+                'size': os.path.getsize(path),
+                'crc': hashlib.md5(open(path, 'r').read()).hexdigest()
+            }
+
+        return dict
+
+    # -----------------------------------------------------------------------------------------------------------------------
 
 
     #create path list from dictionary
-    def __json_path_print(self,dict, prefix="", list=[]):
+
+    def __json_path_print(self,dict, prefix=""):
+        list = []
         for key in dict:
             if 'children' in dict[key]:
-                self.__json_path_print(dict[key]['children'], prefix + key + "/")
+                list.extend(self.__json_path_print(dict[key]['children'], prefix + key + "/"))
             else:
                 list.append(prefix + key)
         return list
-
 
     #upload directory with given path
     def __uploadDirectoryjson(self,bucket):
@@ -146,10 +183,33 @@ class SSS3:
 
     #download online content and check differences with local content
     def __diference_on_content(self,bucket):
-        onlinecontent=(bucket.Object(self.CONTENT_FILE)).get()["Body"].read()
+        onlinecontent=(bucket.Object(self.CONTENT_FILE[2:])).get()["Body"].read()
         onlinejson=json.loads(onlinecontent)
-        print onlinejson
-        return False
+        local=json.loads(open(self.CONTENT_FILE).read())
+        return self.__jsondiff(local,onlinejson,'',[])
+
+
+    def __jsondiff(self,local, online, path='', todo=[]):
+        for key in local.keys():
+            if not online.has_key(key):
+                if local[key].has_key('children'):
+                    todo = todo + self.__json_path_print(local[key]["children"], path + key + "/")
+                else:
+                    todo.append(path + key)
+            else:
+                if local[key].has_key('children'):
+                    todo = todo+self.__jsondiff(local[key]["children"], online[key]["children"], path + key + "/")
+                else:
+                    if local[key]["last_modified_timestamp"] > online[key]["last_modified_timestamp"]:
+                        todo.append(path + key)
+        return todo
+
+    #update .sss3 folder and write it to content.json
+    def __update_contentjson(self):
+        localjson = json.loads(open(self.CONTENT_FILE).read())
+        with open(self.CONTENT_FILE, 'w') as outfile:
+            json.dump(self.__dict_update(localjson, self.__nested_dict(".sss3")), outfile, indent=2)
+
 
 
     def __init__(self, arguments):
@@ -172,6 +232,9 @@ class SSS3:
 
         if cmd == 'push':
             self.__push()
+
+        if cmd == 'add':
+            self.__add()
 
     def __help(self):
         print('usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration')
@@ -197,6 +260,8 @@ class SSS3:
                             "Access_Key_ID": self.arguments[3]}
                     with open(self.CONFIG_FILE, 'w') as outfile:
                         json.dump(data, outfile)
+                    with open(self.CONTENT_FILE, 'w') as outfile:
+                        json.dump({}, outfile)
                     print('Repository initialised!')
             else:
                 print('You entered invalid domain name!!!\nPlease enter GUID that is also a valid domain name.')
@@ -210,6 +275,8 @@ class SSS3:
                     data = {"GUID": self.arguments[2].lower()}
                     with open(self.CONFIG_FILE, 'w') as outfile:
                         json.dump(data, outfile)
+                    with open(self.CONTENT_FILE, 'w') as outfile:
+                        json.dump({}, outfile)
                     print('Repository initialised!')
                     return
 
@@ -221,9 +288,17 @@ class SSS3:
                 data = {"GUID": guid}
                 with open(self.CONFIG_FILE, 'w') as outfile:
                     json.dump(data, outfile)
+                with open(self.CONTENT_FILE, 'w') as outfile:
+                    json.dump({}, outfile)
                 print('Repository initialised!')
                 return
         self.__help()
+
+
+
+
+
+
 
     def __status(self):
         print('Status')
@@ -236,49 +311,59 @@ class SSS3:
     def __pull(self):
         return
 
+    def __add(self):
+        if len(sys.argv)<3:
+            print "Please specify files to upload"
+            return
+        if self.__check_config_folder_exists():
+            for path in sys.argv[2:]:
+                if os.path.exists(path):
+                    #load local json
+                    localjson = json.loads(open(self.CONTENT_FILE).read())
+                    #update local json with new dict
+                    with open(self.CONTENT_FILE, 'w') as outfile:
+                        json.dump(self.__dict_update(localjson, self.__nested_dict(path)), outfile, indent=2)
+                    self.__update_contentjson()
 
+                else:
+                    print "Error: File:",path,"missing!"
+        else:
+            print "Configuration setup missing, please run init command first."
+            return
 
-
+        return
 
     def __push(self):
         if len(sys.argv) == 2:
             if self.__check_config_folder_exists():
-                self.__create_content_json()
                 config=self.__read_config()
                 session = boto3.Session(aws_access_key_id=config["Access_Key_ID"], aws_secret_access_key=config["Secret_Access_Key"])
                 s3 = session.resource('s3')
                 bucket = s3.Bucket(config["GUID"])
                 #check if configuration on cloud exists
+
+                #Uploadingfiles
                 if self.__check_config_online(bucket):
-                    print "configuration exists"
+                    toupload=self.__diference_on_content(bucket)
+                    for key in toupload:
+                        bucket.upload_file(Key=key, Filename=key)
+                        print "File uploaded",os.path.basename(key)
                 else:
-                #if not synchronize folder from content json
+                    self.__update_contentjson()
                     self.__uploadDirectoryjson(bucket)
 
-
-
                 #<---------HELPERS--------->
-
-                #print self.__diference_on_content(bucket)
                 #self.__uploadDirectory(".", bucket)
                 #s3.Bucket('sss3-push-test').objects.delete()
-
-
                 #s3.meta.client.upload_file('test.txt', 'sss3-push-test', 'test.txt')
                 #bucket.upload_file(Key=".sss3/content.json", Filename=".sss3/content.json")
-
-
-
-
                 #print for testing bucket
-                for key in bucket.objects.all():
-                    print(key.key)
-
-
-                #for bucket in s3.buckets.all():
-                #    print(bucket.name)
                 #data = open('test.txt', 'rb')
                 #s3.Bucket('sss3-push-test').put_object(Key='test.txt', Body=data)
+
+                #for key in bucket.objects.all():
+                #    print(key.key)
+
                 # <---------HELPERS--------->
 
                 return
