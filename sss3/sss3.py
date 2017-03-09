@@ -18,13 +18,15 @@ class SSS3:
     config = None
     arguments = None
 
-    COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect','add']
+    COMMANDS = ['init', 'i', 'status', 's', 'clone', 'pull', 'push', 'commit', 'c', 'help', 'h', 'config', 'connect','add','remove']
     FOLDER_NAME = '.sss3'
     CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
     CONTENT_FILE='./{0}/content.json'.format(FOLDER_NAME)
     home_directory = '{0}/aws/credentials'.format(expanduser("~"))
     os.environ["AWS_SHARED_CREDENTIALS_FILE"] = home_directory
 
+
+# Helper-Functions----------------------------------------START------------------------------------------------------------------
 
     # Reading config and return it
     def __read_config(self):
@@ -162,7 +164,6 @@ class SSS3:
 
 
     #create path list from dictionary
-
     def __json_path_print(self,dict, prefix=""):
         list = []
         for key in dict:
@@ -171,6 +172,7 @@ class SSS3:
             else:
                 list.append(prefix + key)
         return list
+
 
     #upload directory with given path
     def __uploadDirectoryjson(self,bucket):
@@ -211,6 +213,7 @@ class SSS3:
             json.dump(self.__dict_update(localjson, self.__nested_dict(".sss3")), outfile, indent=2)
 
 
+#Helper-Functions----------------------------------------END------------------------------------------------------------------
 
     def __init__(self, arguments):
         self.arguments = arguments
@@ -235,6 +238,9 @@ class SSS3:
 
         if cmd == 'add':
             self.__add()
+
+        if cmd == 'remove':
+            self.__remove()
 
     def __help(self):
         print('usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration')
@@ -312,8 +318,12 @@ class SSS3:
         return
 
     def __add(self):
-        if len(sys.argv)<3:
-            print "Please specify files to upload"
+        #print all differences between local and content.json
+        if len(sys.argv)==2:
+            local = json.loads(open(self.CONTENT_FILE).read())
+            print "Different files between directory and SSS3 content are:"
+            for key in  self.__jsondiff(self.__nested_dict("."), local, '', []):
+                print key
             return
         if self.__check_config_folder_exists():
             for path in sys.argv[2:]:
@@ -333,6 +343,22 @@ class SSS3:
 
         return
 
+
+    def __remove(self):
+        if len(sys.argv)<3:
+            print "Please specify files to remove"
+            return
+        if self.__check_config_folder_exists():
+            for path in sys.argv[2:]:
+                if os.path.exists(path):
+                    print ""
+
+                else:
+                    print "Error: File:",path,"missing, it wont be added!"
+        else:
+            print "Configuration setup missing, please run init command first."
+            return
+
     def __push(self):
         if len(sys.argv) == 2:
             if self.__check_config_folder_exists():
@@ -340,9 +366,8 @@ class SSS3:
                 session = boto3.Session(aws_access_key_id=config["Access_Key_ID"], aws_secret_access_key=config["Secret_Access_Key"])
                 s3 = session.resource('s3')
                 bucket = s3.Bucket(config["GUID"])
-                #check if configuration on cloud exists
 
-                #Uploadingfiles
+                #check if configuration on cloud exists
                 if self.__check_config_online(bucket):
                     toupload=self.__diference_on_content(bucket)
                     for key in toupload:
