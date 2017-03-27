@@ -337,7 +337,7 @@ class SSS3:
                             os.makedirs(os.path.dirname(key.key))
                     bucket.download_file(key.key, key.key)
                     print "File downloaded: " + key.key + " complete"
-                data = {"GUID": self.arguments[2].lower,"Secret_Access_Key":self.arguments[4],"Access_Key_ID":self.arguments[3]}
+                data = {"GUID": self.arguments[2].lower(),"Secret_Access_Key":self.arguments[4],"Access_Key_ID":self.arguments[3]}
                 with open(self.CONFIG_FILE, 'w') as outfile:
                     json.dump(data, outfile)
             except Exception as e:
