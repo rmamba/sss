@@ -22,8 +22,10 @@ class SSS3:
     FOLDER_NAME = '.sss3'
     CONFIG_FILE = './{0}/config.json'.format(FOLDER_NAME)
     CONTENT_FILE='./{0}/content.json'.format(FOLDER_NAME)
+    TEMP_FILE = './{0}/temp.json'.format(FOLDER_NAME)
     home_directory = '{0}/aws/credentials'.format(expanduser("~"))
     os.environ["AWS_SHARED_CREDENTIALS_FILE"] = home_directory
+
 
 
 # Helper-Functions----------------------------------------START------------------------------------------------------------------
@@ -55,9 +57,12 @@ class SSS3:
             bucket = s3.Bucket(bucketname)
             if remove==True:
                 bucket.delete()
+
             return True
         except Exception as e:
-            print(e)
+            if 'BucketAlreadyOwnedByYou' in str(e):
+                return True
+            print (e)
             return False
 
     #Check if valid domain name
@@ -96,7 +101,6 @@ class SSS3:
     def __check_config_online(self,bucket):
         exists=False
         try:
-            bucket.Object(self.CONFIG_FILE[2:]).load()
             bucket.Object(self.CONTENT_FILE[2:]).load()
             exists=True
         except botocore.exceptions.ClientError as e:
@@ -184,11 +188,17 @@ class SSS3:
 
 
     #download online content and check differences with local content
-    def __diference_on_content(self,bucket):
-        onlinecontent=(bucket.Object(self.CONTENT_FILE[2:])).get()["Body"].read()
-        onlinejson=json.loads(onlinecontent)
-        local=json.loads(open(self.CONTENT_FILE).read())
-        return self.__jsondiff(local,onlinejson,'',[])
+    def __diference_on_content(self,bucket,way):
+        onlinecontent = (bucket.Object(self.CONTENT_FILE[2:])).get()["Body"].read()
+        onlinejson = json.loads(onlinecontent)
+        local = json.loads(open(self.CONTENT_FILE).read())
+        if(way):
+            difference=self.__jsondiff(onlinejson, local, '', [])
+            with open(self.CONTENT_FILE, 'w') as outfile:
+                json.dump(self.__dict_update(local,onlinejson), outfile, indent=2)
+            return difference
+        else:
+            return self.__jsondiff(local,onlinejson,'',[])
 
 
     def __jsondiff(self,local, online, path='', todo=[]):
@@ -210,7 +220,7 @@ class SSS3:
     def __update_contentjson(self):
         localjson = json.loads(open(self.CONTENT_FILE).read())
         with open(self.CONTENT_FILE, 'w') as outfile:
-            json.dump(self.__dict_update(localjson, self.__nested_dict(".sss3")), outfile, indent=2)
+            json.dump(self.__dict_update(localjson, self.__nested_dict(self.CONTENT_FILE[2:])), outfile, indent=2)
 
 
 #Helper-Functions----------------------------------------END------------------------------------------------------------------
@@ -241,6 +251,13 @@ class SSS3:
 
         if cmd == 'remove':
             self.__remove()
+
+        if cmd == 'pull':
+            self.__pull()
+
+        if cmd == 'clone':
+            self.__clone()
+
 
     def __help(self):
         print('usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration')
@@ -302,31 +319,47 @@ class SSS3:
 
 
 
-
-
-
-
     def __status(self):
         print('Status')
         #print
         return
 
     def __clone(self):
+        if len(self.arguments)==5:
+            session = boto3.Session(aws_access_key_id=self.arguments[3], aws_secret_access_key=self.arguments[4])
+            try:
+                s3 = session.resource('s3')
+                bucket = s3.Bucket(self.arguments[2])
+                #Download everything from S3 cloud
+                for key in bucket.objects.all():
+                    if os.path.dirname(key.key) != '':
+                        if not (os.path.isdir(os.path.dirname(key.key))):
+                            os.makedirs(os.path.dirname(key.key))
+                    bucket.download_file(key.key, key.key)
+                    print "File downloaded: " + key.key + " complete"
+                data = {"GUID": self.arguments[2].lower,"Secret_Access_Key":self.arguments[4],"Access_Key_ID":self.arguments[3]}
+                with open(self.CONFIG_FILE, 'w') as outfile:
+                    json.dump(data, outfile)
+            except Exception as e:
+                print e
+            return
+
+
+
+        self.__help()
         return
 
-    def __pull(self):
-        return
 
     def __add(self):
         #print all differences between local and content.json
-        if len(sys.argv)==2:
+        if len(self.arguments)==2:
             local = json.loads(open(self.CONTENT_FILE).read())
             print "Different files between directory and SSS3 content are:"
             for key in  self.__jsondiff(self.__nested_dict("."), local, '', []):
                 print key
             return
         if self.__check_config_folder_exists():
-            for path in sys.argv[2:]:
+            for path in self.arguments[2:]:
                 if os.path.exists(path):
                     #load local json
                     localjson = json.loads(open(self.CONTENT_FILE).read())
@@ -340,16 +373,15 @@ class SSS3:
         else:
             print "Configuration setup missing, please run init command first."
             return
-
         return
 
 
     def __remove(self):
-        if len(sys.argv)<3:
+        if len(self.arguments)<3:
             print "Please specify files to remove"
             return
         if self.__check_config_folder_exists():
-            for path in sys.argv[2:]:
+            for path in self.arguments[2:]:
                 if os.path.exists(path):
                     print ""
 
@@ -359,8 +391,38 @@ class SSS3:
             print "Configuration setup missing, please run init command first."
             return
 
+
+    def __pull(self):
+        if len(self.arguments)==2:
+            if self.__check_config_folder_exists():
+                config = self.__read_config()
+                session = boto3.Session(aws_access_key_id=config["Access_Key_ID"],
+                                        aws_secret_access_key=config["Secret_Access_Key"])
+                s3 = session.resource('s3')
+                bucket = s3.Bucket(config["GUID"])
+                if self.__check_config_online(bucket):
+                    todownload = self.__diference_on_content(bucket, True)
+                    for key in todownload:
+                        if os.path.dirname(key)!='':
+                            if not (os.path.isdir(os.path.dirname(key))):
+                                os.makedirs(os.path.dirname(key))
+                        bucket.download_file(key, key)
+                        print "File downloaded: "+key+" complete"
+                else:
+                    print "Online configuration missing"
+                    return
+            else:
+                print "Configuration setup missing, please run init command first."
+                return
+        else:
+            self.__help()
+            return
+
+        return
+
+
     def __push(self):
-        if len(sys.argv) == 2:
+        if len(self.arguments) == 2:
             if self.__check_config_folder_exists():
                 config=self.__read_config()
                 session = boto3.Session(aws_access_key_id=config["Access_Key_ID"], aws_secret_access_key=config["Secret_Access_Key"])
@@ -369,7 +431,16 @@ class SSS3:
 
                 #check if configuration on cloud exists
                 if self.__check_config_online(bucket):
-                    toupload=self.__diference_on_content(bucket)
+                    toupload=self.__diference_on_content(bucket,False)
+                    if self.CONTENT_FILE[2:] in toupload:
+                        #merge new config with onlineconfig
+                        onlinecontent = (bucket.Object(self.CONTENT_FILE[2:])).get()["Body"].read()
+                        onlinejson = self.__dict_update(json.loads(onlinecontent), json.loads(open(self.CONTENT_FILE).read()))
+                        with open(self.TEMP_FILE, 'w') as outfile:
+                            json.dump(onlinejson, outfile)
+                        toupload.remove(self.CONTENT_FILE[2:])
+                        bucket.upload_file(Key=self.CONTENT_FILE[2:], Filename=self.TEMP_FILE)
+                        os.remove(self.TEMP_FILE)
                     for key in toupload:
                         bucket.upload_file(Key=key, Filename=key)
                         print "File uploaded",os.path.basename(key)
