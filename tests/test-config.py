@@ -23,31 +23,31 @@ class TestConfigCommandWithNoConfigFile(unittest.TestCase):
     with open(self.TEST_FILE) as json_data:
       self.test_data = json.load(json_data)
 
-  def test_no_parameters(self):
+  def test_01_no_parameters(self):
     SSS3(['sss3.py', 'config'])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_print_GUID(self):
+  def test_02_print_GUID(self):
     SSS3(['sss3.py', 'config', 'GUID'])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_set_guid(self):
+  def test_03_set_guid(self):
     SSS3(['sss3.py', 'config', 'GUID', 'newGUID'])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_print_aws(self):
+  def test_04_print_aws(self):
     SSS3(['sss3.py', 'config', 'AWS'])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_set_aws_not_enough_parameters(self):
+  def test_05_set_aws_not_enough_parameters(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notEnough' ])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_set_aws_wrong_credentials(self):
+  def test_06_set_aws_wrong_credentials(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
-  def test_set_aws_correct_credentials(self):
+  def test_07_set_aws_correct_credentials(self):
     SSS3(['sss3.py', 'config', 'AWS', self.test_data['AWS']['restrected']['AccessKeyID'], self.test_data['AWS']['restrected']['SecretAccessKey']])
     self.assertEqual(sys.stdout.getvalue(), 'This directory is not a SSS3 archive!!!\nIf you would like to make it one run init command.\n')
 
@@ -80,39 +80,39 @@ class TestConfigCommanWithRestrectedAccess(unittest.TestCase):
     with open(self.CONFIG_FILE, 'w') as outfile:
       json.dump(data, outfile)
 
-  def test_no_arguments(self):
+  def test_01_no_arguments(self):
     SSS3(['sss3.py'])
     self.assertEqual(sys.stdout.getvalue(), 'usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration\n')
 
-  def test_config_no_parameters(self):
+  def test_02_config_no_parameters(self):
     SSS3(['sss3.py', 'config'])
     self.assertEqual(sys.stdout.getvalue(), 'usage: sss3 config <argument> <argument> <argument>\n\nArguments:\n\tAWS\tPrints AWS credentials. Or sets credentials if new are provided.\n\tGUID\tPrint name of this repository.\n')
 
-  def test_config_print_guid(self):
+  def test_03_config_print_guid(self):
     SSS3(['sss3.py', 'config', 'GUID'])
     self.assertEqual(sys.stdout.getvalue(), 'GUID: sss3-test\n')
 
-  def test_config_set_guid(self):
+  def test_04_config_set_guid(self):
     SSS3(['sss3.py', 'config', 'GUID', 'newGUID'])
     self.assertEqual(sys.stdout.getvalue(), 'GUID is read only!!!\n')
 
-  def test_config_set_guid2(self):
+  def test_05_config_set_guid2(self):
     SSS3(['sss3.py', 'config', 'GUID', 'newGUID', 'dummyGUID'])
     self.assertEqual(sys.stdout.getvalue(), 'GUID is read only!!!\n')
 
-  def test_config_print_aws(self):
+  def test_06_config_print_aws(self):
     SSS3(['sss3.py', 'config', 'AWS'])
     self.assertEqual(sys.stdout.getvalue(), 'AccessKeyID: \t{0}\nSecretAccessKey: \t{1}\n'.format(self.test_data['AWS']['restrected']['AccessKeyID'], self.test_data['AWS']['restrected']['SecretAccessKey']))
 
-  def test_config_set_aws_not_enough_parameters(self):
+  def test_07_config_set_aws_not_enough_parameters(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notEnough' ])
     self.assertEqual(sys.stdout.getvalue(), 'You need to specify both AccessKeyID and SecretAccessKey to change them!!!\n')
 
-  def test_config_set_aws_wrong_credentials(self):
+  def test_08_config_set_aws_wrong_credentials(self):
     SSS3(['sss3.py', 'config', 'AWS', 'notAccess', 'notKey'])
     self.assertEqual(sys.stdout.getvalue(), 'Error accessing S3 bucket!!!\nPlease provide correct credentials that have access to bucket you are using.\n')
 
-  def test_config_set_aws_correct_credentials(self):
+  def test_09_config_set_aws_correct_credentials(self):
     SSS3(['sss3.py', 'config', 'AWS', self.test_data['AWS']['unrestrected']['AccessKeyID'], self.test_data['AWS']['unrestrected']['SecretAccessKey']])
     self.assertEqual(sys.stdout.getvalue(), 'New credentials were saved to your configuration file.\n')
 

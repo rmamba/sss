@@ -11,7 +11,7 @@ class TestHelp(unittest.TestCase):
   def setUp(self):
     self.held, sys.stdout = sys.stdout, StringIO()
 
-  def test_no_arguments(self):
+  def test_01_no_arguments(self):
     SSS3(['sss3.py'])
     self.assertEqual(sys.stdout.getvalue(), 'usage: sss3 <command> [<args>]\n\nCommands:\n\tinit\tCreate an empty repository\n\tconfig\tView or set values for this repositories configuration\n')
 
