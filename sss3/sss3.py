@@ -1,3 +1,4 @@
+
 import collections
 import hashlib
 import sys
@@ -337,7 +338,9 @@ class SSS3:
                             os.makedirs(os.path.dirname(key.key))
                     bucket.download_file(key.key, key.key)
                     print "File downloaded: " + key.key + " complete"
-
+                data = {"GUID": self.arguments[2].lower(),"Secret_Access_Key":self.arguments[4],"Access_Key_ID":self.arguments[3]}
+                with open(self.CONFIG_FILE, 'w') as outfile:
+                    json.dump(data, outfile)
             except Exception as e:
                 print e
             return
@@ -455,8 +458,8 @@ class SSS3:
                 #data = open('test.txt', 'rb')
                 #s3.Bucket('sss3-push-test').put_object(Key='test.txt', Body=data)
 
-                for key in bucket.objects.all():
-                    print(key.key)
+                #for key in bucket.objects.all():
+                #    print(key.key)
 
                 # <---------HELPERS--------->
 
@@ -511,5 +514,4 @@ class SSS3:
 
 if __name__ == '__main__':
     SSS3(sys.argv)
-
 
