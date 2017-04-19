@@ -101,6 +101,7 @@ class SSS3:
     def __check_config_online(self,bucket):
         exists=False
         try:
+            bucket.Object(self.CONFIG_FILE[2:]).load()
             bucket.Object(self.CONTENT_FILE[2:]).load()
             exists=True
         except botocore.exceptions.ClientError as e:
@@ -220,7 +221,7 @@ class SSS3:
     def __update_contentjson(self):
         localjson = json.loads(open(self.CONTENT_FILE).read())
         with open(self.CONTENT_FILE, 'w') as outfile:
-            json.dump(self.__dict_update(localjson, self.__nested_dict(self.CONTENT_FILE[2:])), outfile, indent=2)
+            json.dump(self.__dict_update(localjson, self.__nested_dict(".sss3")), outfile, indent=2)
 
 
 #Helper-Functions----------------------------------------END------------------------------------------------------------------
@@ -337,9 +338,7 @@ class SSS3:
                             os.makedirs(os.path.dirname(key.key))
                     bucket.download_file(key.key, key.key)
                     print "File downloaded: " + key.key + " complete"
-                data = {"GUID": self.arguments[2].lower(),"Secret_Access_Key":self.arguments[4],"Access_Key_ID":self.arguments[3]}
-                with open(self.CONFIG_FILE, 'w') as outfile:
-                    json.dump(data, outfile)
+
             except Exception as e:
                 print e
             return
