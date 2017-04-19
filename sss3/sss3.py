@@ -101,7 +101,6 @@ class SSS3:
     def __check_config_online(self,bucket):
         exists=False
         try:
-            bucket.Object(self.CONFIG_FILE[2:]).load()
             bucket.Object(self.CONTENT_FILE[2:]).load()
             exists=True
         except botocore.exceptions.ClientError as e:
@@ -221,7 +220,7 @@ class SSS3:
     def __update_contentjson(self):
         localjson = json.loads(open(self.CONTENT_FILE).read())
         with open(self.CONTENT_FILE, 'w') as outfile:
-            json.dump(self.__dict_update(localjson, self.__nested_dict(".sss3")), outfile, indent=2)
+            json.dump(self.__dict_update(localjson, self.__nested_dict(self.CONTENT_FILE[2:])), outfile, indent=2)
 
 
 #Helper-Functions----------------------------------------END------------------------------------------------------------------
@@ -456,8 +455,8 @@ class SSS3:
                 #data = open('test.txt', 'rb')
                 #s3.Bucket('sss3-push-test').put_object(Key='test.txt', Body=data)
 
-                #for key in bucket.objects.all():
-                #    print(key.key)
+                for key in bucket.objects.all():
+                    print(key.key)
 
                 # <---------HELPERS--------->
 
